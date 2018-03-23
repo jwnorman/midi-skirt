@@ -1,3 +1,4 @@
 musical/*
 .ipynb_checkpoints/
 *.midi
+*.mid
