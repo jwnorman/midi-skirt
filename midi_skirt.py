@@ -74,10 +74,11 @@ class MidiChord:
 
     Note: a MidiChord has no conception of start_tick but set_start_tick helps set the tick.
     """
-    #
+
     def __init__(self, chord_notes=None):
         """
         chord_notes: a list of strings that represent the notes and octaves of the chord.
+
         usage:
             chord = MidiChord(['c1', 'e1', 'g1'])
         """
@@ -86,7 +87,7 @@ class MidiChord:
         # self.chord_name = ""
 
     def build_chord(self):
-        """Populates the staged_events list with on and off of events, one for each note in the chord."""
+        """Populate the staged_events list with on and off of events, one for each note in the chord."""
         for note in self.chord_notes:
             # velocity = random.randint(50, 90)
             notes_created = self._create_note_tuple(note)
@@ -131,13 +132,12 @@ class ChordBuilder:
         num_notes_in_scale = len(my_scale)
         scale_start_num = octave * num_notes_in_scale
         intervals = [self._deal_with_pitch_accidentals(interval) for interval in intervals]
-        notes = [my_scale.get(scale_start_num+interval[0]-1).transpose(interval[1]) for interval in intervals]
+        notes = [my_scale.get(scale_start_num + interval[0] - 1).transpose(interval[1]) for interval in intervals]
         chord = MidiChord([note.note + str(note.octave) for note in notes])
         chord.build_chord()
         return chord
 
     def build_directly(self, notes):
-        """notes is a list of Note()s"""
         chord = MidiChord([note.note + str(note.octave) for note in notes])
         chord.build_chord()
         return chord
@@ -149,7 +149,7 @@ class ChordBuilder:
         scale_start_num = octave * num_notes_in_scale
         num_notes_in_chord = np.random.choice(num_note_choices)
         possible_notes = [my_scale.get(temp_note)
-                          for temp_note in range(scale_start_num, scale_start_num + num_notes_in_scale*2)]
+                          for temp_note in range(scale_start_num, scale_start_num + num_notes_in_scale * 2)]
         notes = np.random.choice(possible_notes, size=num_notes_in_chord, replace=False)
         chord = MidiChord([note.note + str(note.octave) for note in notes])
         chord.build_chord()
@@ -173,11 +173,12 @@ class ChordBuilder:
 
 
 class ChordProgression:
-    """A ChordProgression consists of chords and changes (start ticks)
+    """A ChordProgression consists of chords and changes (start ticks).
 
     The changes are just the underlying chord progression. A rhythm is created separately and applied
     later by using the chord progression object to know which chord to play.
     """
+
     def __init__(self, chords=[], changes=[]):
         self.chords = chords
         self.changes = changes
@@ -238,14 +239,14 @@ class Rhythm:
 
     def _get_random_start_ticks(self, number_of_notes):
         return np.unique(sorted([
-                    self._find_nearest_note(
-                        value=random.randint(0, self.rhythm_len)+self.start_tick,
-                        note_type=self.quantization)
-                    for _ in range(number_of_notes)]))
+            self._find_nearest_note(
+                value=random.randint(0, self.rhythm_len) + self.start_tick,
+                note_type=self.quantization)
+            for _ in range(number_of_notes)]))
 
     def _find_nearest_note(self, value, note_type):
         mod = value % note_type
-        if (mod > (note_type / 2.0)): # round up
+        if (mod > (note_type / 2.0)):  # round up
             return value + note_type - mod
         else:
             return value - mod
@@ -274,7 +275,6 @@ class ChordProgressionRhythm:
                 else:
                     print 'wat'
             chords.append(chord)
-        print chords[10].staged_events[0].start_tick
         return chords
 
     def make_chord_and_rhythm_same_length(self):
