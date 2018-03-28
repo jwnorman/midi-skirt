@@ -93,16 +93,29 @@ class MidiChord:
             notes_created = self._create_note_tuple(note)
             self.staged_events.extend(notes_created)
 
-#     def set_start_tick(self, start_tick):
-#         for event in self.staged_events:
-#             event.start_tick += start_tick
+    def set_start_tick(self, start_tick):
+        for event in self.staged_events:
+            event.start_tick += start_tick
 
-#     def set_start_ticks(self, start_ticks):
-#         raise NotImplemented
+    def set_start_tick_uniformly_noisily(self, start_tick, noise_range):
+        for event in self.staged_events:
+            event.start_tick += start_tick + random.randint(noise_range[0], noise_range[1])
 
-#     def set_start_tick_noisily(self, start_tick, noise_range):
-#         for event in self.staged_events:
-#             event.start_tick += start_tick + np.random.uniform(noise_range[0], noise_range[1])
+    def set_duration(self, duration):
+        for event in self.staged_events:
+            if event.midi_event_fun.name == "Note Off":
+                event.start_tick += duration
+            event.duration += duration
+
+    def set_velocity(self, velocity):
+        for event in self.staged_events:
+            if event.midi_event_fun.name == "Note On":
+                event.velocity = velocity
+
+    def set_velocity_randomly_uniform(self, min_vel, max_vel):
+        for event in self.staged_events:
+            if event.midi_event_fun.name == "Note On":
+                event.velocity = random.randint(min_vel, max_vel)
 
     def _create_note_tuple(self, note):
         return [
@@ -253,9 +266,13 @@ class Rhythm:
 
 
 class ChordProgressionRhythm:
-    def __init__(self, rhythm, chord_progression, match_lengths=True):
+    def __init__(self, rhythm, chord_progression, tick_method="direct", vel_method="random", tick_noise=[-55, 55],
+                 match_lengths=True):
         self.rhythm = rhythm
         self.chord_progression = chord_progression
+        self.tick_method = tick_method
+        self.vel_method = vel_method
+        self.tick_noise = tick_noise
         self.chords = self.build_staging_events()
         if match_lengths:
             self.make_chord_and_rhythm_same_length()
@@ -264,16 +281,19 @@ class ChordProgressionRhythm:
         chords = []
         for tick, duration in zip(self.rhythm.start_ticks, self.rhythm.note_lengths):
             chord = copy.deepcopy(self.chord_progression.get_chord_from_tick(tick))
-            for event in chord.staged_events:
-                if event.midi_event_fun.name == "Note On":
-                    event.start_tick = tick
-                    event.duration = duration
-                    event.velocity = random.randint(50, 90)
-                elif event.midi_event_fun.name == "Note Off":
-                    event.start_tick = tick + duration
-                    event.duration = duration
-                else:
-                    print 'wat'
+            if self.tick_method == "direct":
+                chord.set_start_tick(tick)
+            elif self.tick_method == "random":
+                chord.set_start_tick_uniformly_noisily(tick, self.tick_noise)
+            else:
+                chord.set_start_tick(tick)
+            if self.vel_method == "random":
+                chord.set_velocity_randomly_uniform(50, 90)
+            elif self.vel_method == "direct":
+                chord.set_velocity(random.randint(50, 90))
+            else:
+                chord.set_velocity_randomly_uniform(50, 90)
+            chord.set_duration(duration)
             chords.append(chord)
         return chords
 
