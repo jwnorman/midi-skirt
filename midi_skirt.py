@@ -101,6 +101,11 @@ class MidiChord:
         for event in self.staged_events:
             event.start_tick += start_tick + random.randint(noise_range[0], noise_range[1])
 
+    def set_start_tick_uniformly_noisily_once(self, start_tick, noise_range):
+        noise = random.randint(noise_range[0], noise_range[1])
+        for event in self.staged_events:
+            event.start_tick += start_tick + noise
+
     def set_duration(self, duration):
         for event in self.staged_events:
             if event.midi_event_fun.name == "Note Off":
@@ -285,6 +290,8 @@ class ChordProgressionRhythm:
                 chord.set_start_tick(tick)
             elif self.tick_method == "random":
                 chord.set_start_tick_uniformly_noisily(tick, self.tick_noise)
+            elif self.tick_method == "random_once":
+                chord.set_start_tick_uniformly_noisily_once(tick, self.tick_noise)
             else:
                 chord.set_start_tick(tick)
             if self.vel_method == "random":
