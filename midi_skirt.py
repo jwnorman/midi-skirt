@@ -20,6 +20,41 @@ class PatternConstants:
         self.sixty_forth_note = int(resolution / 16.0)
         self.whole_note = resolution * 4
         self.bar = resolution * 4
+        self.half_triplet = int(self.bar / 3.0)
+        self.quarter_triplet = int(self.bar / 6.0)
+        self.eighth_triplet = int(self.bar / 12.0)
+        self.sixteenth_triplet = int(self.bar / 24.0)
+        self.thirty_second_triplet = int(self.bar / 48.0)
+        self.sixty_forth_triplet = int(self.bar / 96.0)
+        self.half_fifth = int(self.bar / 5.0)
+        self.quarter_fifth = int(self.bar / 10.0)
+        self.eighth_fifth = int(self.bar / 20.0)
+        self.sixteenth_fifth = int(self.bar / 40.0)
+        self.half_seventh = int(self.bar / 7.0)
+        self.quarter_seventh = int(self.bar / 14.0)
+        self.eighth_seventh = int(self.bar / 28.0)
+        self.sixteenth_seventh = int(self.bar / 56.0)
+        self.half_ninth = int(self.bar / 9.0)
+        self.quarter_ninth = int(self.bar / 18.0)
+        self.eighth_ninth = int(self.bar / 36.0)
+        self.sixteenth_ninth = int(self.bar / 72.0)
+
+    def get_notes_2(self):
+        return [self.sixty_forth_note, self.thirty_second_note, self.sixteenth_note, self.eighth_note,
+                self.quarter_note, self.half_note, self.whole_note]
+
+    def get_notes_3(self):
+        return [self.sixty_forth_triplet, self.thirty_second_triplet, self.sixteenth_triplet,
+                self.eighth_triplet, self.quarter_triplet, self.half_triplet, self.whole_note]
+
+    def get_notes_5(self):
+        return [self.sixteenth_fifth, self.eighth_fifth, self.quarter_fifth, self.half_fifth, self.whole_note]
+
+    def get_notes_7(self):
+        return [self.sixteenth_seventh, self.eighth_seventh, self.quarter_seventh, self.half_seventh, self.whole_note]
+
+    def get_notes_9(self):
+        return [self.sixteenth_ninth, self.eighth_ninth, self.quarter_ninth, self.half_ninth, self.whole_note]
 
 
 def make_ticks_rel(track):
@@ -94,9 +129,24 @@ class MidiChord:
         for event in self.staged_events:
             event.start_tick += start_tick
 
-    def set_start_tick_uniformly_noisily(self, start_tick, noise_range):
+    def set_start_tick_uniformly_noisily(self, start_tick, noise_range, direction=None):
+        noises = [random.randint(noise_range[0], noise_range[1]) for _ in range(len(self.staged_events))]
+        if direction is None:
+            for event, noise in zip(self.staged_events, noises):
+                event.start_tick += start_tick + noise
+        elif direction == "ascending":
+            for event, noise in zip(self.staged_events, sorted(noises, reverse=False)):
+                event.start_tick += start_tick + noise
+        elif direction == "descending":
+            for event, noise in zip(self.staged_events, sorted(noises, reverse=True)):
+                event.start_tick += start_tick + noise
+        else:
+            print "wat"
         for event in self.staged_events:
             event.start_tick += start_tick + random.randint(noise_range[0], noise_range[1])
+
+    def set_start_tick_uniformly_noisily_ascending(self, start_tick, noise_range):
+        pass
 
     def set_start_tick_uniformly_noisily_once(self, start_tick, noise_range):
         noise = random.randint(noise_range[0], noise_range[1])
@@ -289,6 +339,10 @@ class ChordProgressionRhythm:
                 chord.set_start_tick_uniformly_noisily(tick, self.tick_noise)
             elif self.tick_method == "random_once":
                 chord.set_start_tick_uniformly_noisily_once(tick, self.tick_noise)
+            elif self.tick_method == "random_asc":
+                chord.set_start_tick_uniformly_noisily(tick, self.tick_noise, "ascending")
+            elif self.tick_method == "random_desc":
+                chord.set_start_tick_uniformly_noisily(tick, self.tick_noise, "descending")
             else:
                 chord.set_start_tick(tick)
             if self.vel_method == "random":
