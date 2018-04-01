@@ -10,34 +10,36 @@ from musical.theory import Note, scale, Scale
 
 
 class PatternConstants:
-    def __init__(self, resolution=440):
+    def __init__(self, resolution=440, beats_per_bar=4):
         self.resolution = resolution
+        self.beat = resolution
         self.quarter_note = resolution
-        self.half_note = resolution * 2
-        self.eighth_note = int(resolution / 2.0)
-        self.sixteenth_note = int(resolution / 4.0)
-        self.thirty_second_note = int(resolution / 8.0)
-        self.sixty_forth_note = int(resolution / 16.0)
-        self.whole_note = resolution * 4
-        self.bar = resolution * 4
-        self.half_triplet = int(self.bar / 3.0)
-        self.quarter_triplet = int(self.bar / 6.0)
-        self.eighth_triplet = int(self.bar / 12.0)
-        self.sixteenth_triplet = int(self.bar / 24.0)
-        self.thirty_second_triplet = int(self.bar / 48.0)
-        self.sixty_forth_triplet = int(self.bar / 96.0)
-        self.half_fifth = int(self.bar / 5.0)
-        self.quarter_fifth = int(self.bar / 10.0)
-        self.eighth_fifth = int(self.bar / 20.0)
-        self.sixteenth_fifth = int(self.bar / 40.0)
-        self.half_seventh = int(self.bar / 7.0)
-        self.quarter_seventh = int(self.bar / 14.0)
-        self.eighth_seventh = int(self.bar / 28.0)
-        self.sixteenth_seventh = int(self.bar / 56.0)
-        self.half_ninth = int(self.bar / 9.0)
-        self.quarter_ninth = int(self.bar / 18.0)
-        self.eighth_ninth = int(self.bar / 36.0)
-        self.sixteenth_ninth = int(self.bar / 72.0)
+        self.beats_per_bar = beats_per_bar
+        self.bar = self.beat * beats_per_bar
+        self.half_note = self.quarter_note * 2
+        self.eighth_note = int(self.quarter_note / 2.0)
+        self.sixteenth_note = int(self.quarter_note / 4.0)
+        self.thirty_second_note = int(self.quarter_note / 8.0)
+        self.sixty_forth_note = int(self.quarter_note / 16.0)
+        self.whole_note = self.bar
+
+        (self.half_triplet, self.quarter_triplet, self.eighth_triplet, self.sixteenth_triplet,
+         self.thirty_second_triplet, self.sixty_forth_triplet) = self.get_notes(3)
+        (self.half_fifth, self.quarter_fifth, self.eighth_fifth, self.sixteenth_fifth, self.thirty_second_fifth,
+         self.sixty_forth_fifth) = self.get_notes(5)
+        (self.half_seventh, self.quarter_seventh, self.eighth_seventh, self.sixteenth_seventh,
+         self.thirty_second_seventh, sixty_forth_seventh) = self.get_notes(7)
+        (self.half_ninth, self.quarter_ninth, self.eighth_ninth, self.sixteenth_ninth, self.thirty_second_ninth,
+         self.sixty_forth_ninth) = self.get_notes(9)
+
+    def get_notes(self, divisions=3):
+        half = int(self.half_note / float(divisions))
+        quarter = int(self.quarter_note / float(divisions))
+        eighth = int(self.eighth_note / float(divisions))
+        sixteenth = int(self.sixteenth_note / float(divisions))
+        thirty_second = int(self.thirty_second_note / float(divisions))
+        sixty_forth = int(self.sixty_forth_note / float(divisions))
+        return[half, quarter, eighth, sixteenth, thirty_second, sixty_forth]
 
     def get_notes_2(self):
         return [self.sixty_forth_note, self.thirty_second_note, self.sixteenth_note, self.eighth_note,
