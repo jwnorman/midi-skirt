@@ -1,6 +1,7 @@
 """Tools to help build random rhythms, chord progressions, and melodies."""
 
 import copy
+import itertools
 import midi
 import numpy as np
 import pandas as pd
@@ -276,20 +277,16 @@ class ChordProgression:
         return sum(self.changes)
 
     def get_chord_from_tick(self, tick):
-        temp = [0] + self.changes + [np.inf]
-        pos = np.sum(np.cumsum(temp) < tick)
-        if pos > len(self.chords):
-            pos -= 2
-        if pos == len(self.chords):
-            pos -= 1
-        return self.chords[pos]
+        pos = np.sum(np.cumsum(np.array(self.changes)) - self.changes[0] <= tick)
+        return self.chords[pos - 1]
 
 
 class Rhythm:
-    def __init__(self, rhythm_len=None, start_tick=None, quantization=None):
+    def __init__(self, rhythm_len=None, start_tick=None, quantization=None, emphasis_velocities=(45, 95)):
         self.rhythm_len = rhythm_len
         self.start_tick = start_tick
         self.quantization = quantization
+        self.emphasis_velocities = emphasis_velocities
         self.start_ticks = []
         self.note_lengths = []
 
@@ -297,9 +294,49 @@ class Rhythm:
         number_of_notes = self._compute_num_notes(note_density)
         self.start_ticks = self._get_random_start_ticks(number_of_notes)
         self.note_lengths = [np.random.choice(note_len_choices) for _ in self.start_ticks]
+        self.emphases = [self.emphasis_velocities[0]] * number_of_notes
 
     def build_rhythm_directly(self):
         pass
+
+    def build_emphasis_ticks_randomly(self, emphasis_quantization, container):
+        # note: don't forget start_tick
+        emphasis_ticks = []
+        num_container_divisions = container / emphasis_quantization
+        if num_container_divisions > 20:
+            print 'too many combinations'
+            raise NotImplemented
+        container_divisions = range(num_container_divisions)
+        all_emphases_combos = []
+        for i in container_divisions:
+            all_emphases_combos.extend(list(itertools.combinations(container_divisions, i)))
+        random_emphasis_combo = random.choice(all_emphases_combos)
+        print "Emphasis on: " + str(np.array(random_emphasis_combo) + 1)
+        epmhasis_ticks_temp = np.arange(0, container, emphasis_quantization).take(random_emphasis_combo)
+        for tick in epmhasis_ticks_temp:
+            emphasis_ticks.extend(np.arange(tick, self.rhythm_len, container))
+        emphases = []
+        for st in self.start_ticks:
+            if st in emphasis_ticks:
+                emphases.append(self.emphasis_velocities[1])
+            else:
+                emphases.append(self.emphasis_velocities[0])
+        self.emphases = emphases
+
+    def build_emphasis_ticks_directly(self, emphasis_quantization, container, emphasis_divisions):
+        # note: don't forget start_tick
+        emphasis_ticks = []
+        emphasis_divisions = np.array(emphasis_divisions) - 1
+        epmhasis_ticks_temp = np.arange(0, container, emphasis_quantization).take(emphasis_divisions)
+        for tick in epmhasis_ticks_temp:
+            emphasis_ticks.extend(np.arange(tick, self.rhythm_len, container))
+        emphases = []
+        for st in self.start_ticks:
+            if st in emphasis_ticks:
+                emphases.append(self.emphasis_velocities[1])
+            else:
+                emphases.append(self.emphasis_velocities[0])
+        self.emphases = emphases
 
     def _compute_num_notes(self, note_density):
         return int(self.rhythm_len * note_density / float(self.quantization))
@@ -333,7 +370,7 @@ class ChordProgressionRhythm:
 
     def build_staging_events(self):
         chords = []
-        for tick, duration in zip(self.rhythm.start_ticks, self.rhythm.note_lengths):
+        for tick, duration, emphasis in zip(self.rhythm.start_ticks, self.rhythm.note_lengths, self.rhythm.emphases):
             chord = copy.deepcopy(self.chord_progression.get_chord_from_tick(tick))
             if self.tick_method == "direct":
                 chord.set_start_tick(tick)
@@ -348,11 +385,11 @@ class ChordProgressionRhythm:
             else:
                 chord.set_start_tick(tick)
             if self.vel_method == "random":
-                chord.set_velocity_randomly_uniform(50, 90)
+                chord.set_velocity_randomly_uniform(emphasis - 10, emphasis + 10)
             elif self.vel_method == "direct":
-                chord.set_velocity(random.randint(50, 90))
+                chord.set_velocity(random.randint(emphasis - 10, emphasis + 10))
             else:
-                chord.set_velocity_randomly_uniform(50, 90)
+                chord.set_velocity_randomly_uniform(emphasis - 10, emphasis + 10)
             chord.set_duration(duration)
             chords.append(chord)
         return chords
