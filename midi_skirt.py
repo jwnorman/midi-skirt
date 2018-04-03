@@ -303,14 +303,8 @@ class Rhythm:
         # note: don't forget start_tick
         emphasis_ticks = []
         num_container_divisions = container / emphasis_quantization
-        if num_container_divisions > 20:
-            print 'too many combinations'
-            raise NotImplemented
-        container_divisions = range(num_container_divisions)
-        all_emphases_combos = []
-        for i in container_divisions:
-            all_emphases_combos.extend(list(itertools.combinations(container_divisions, i)))
-        random_emphasis_combo = random.choice(all_emphases_combos)
+        num_emphasis_notes = random.choice(range(num_container_divisions))
+        random_emphasis_combo = np.random.choice(range(num_container_divisions), num_emphasis_notes, replace=False)
         print "Emphasis on: " + str(np.array(random_emphasis_combo) + 1)
         epmhasis_ticks_temp = np.arange(0, container, emphasis_quantization).take(random_emphasis_combo)
         for tick in epmhasis_ticks_temp:
