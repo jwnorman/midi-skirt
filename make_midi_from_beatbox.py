@@ -206,6 +206,18 @@ os.system("rm temp_file.wav")
 
 
 
+
+filename = "~/Desktop/beatbox3.wav"
+rate = 44100
+drum_mapping = DrumMapping().kick_and_snare
+os.system("sox {} --rate {} temp_file.wav".format(filename, rate))
+wav_to_midi = WavToMidi("temp_file.wav", rate, drum_mapping)
+pattern = wav_to_midi.convert_wav_to_midi()
+midi.write_midifile("example.mid", pattern)
+os.system("rm temp_file.wav")
+
+
+
 # entire_fd, entire_freq = get_fft(data)
 # plt.plot(entire_freq, entire_fd)
 # plt.show()
