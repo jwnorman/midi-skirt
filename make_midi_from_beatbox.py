@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pandas as pd
 import peakutils
+import sys
 # import seaborn as sns
 
 from scipy import signal
@@ -56,9 +57,13 @@ class WavToMidi:
         print "Finding peaks"
         ids = peakutils.indexes(data, thres=thres, min_dist=min_dist)
         peaks = data[ids]
+        import pdb; pdb.set_trace()
+        print max(data)
         filtered_ids_and_peaks = [(id_temp, peak) for (id_temp, peak) in zip(ids, peaks) if peak > thres]
         ids = [temp[0] for temp in filtered_ids_and_peaks]
         peaks = [temp[1] for temp in filtered_ids_and_peaks]
+        if len(peaks) == 0:
+            sys.exit("No peaks are found. Did you record really quietly?")
         return (ids, peaks)
 
     # @staticmethod
@@ -83,17 +88,17 @@ class WavToMidi:
         return bins
 
     # @staticmethod
-    def _get_fft(self, segment, rate):
+    def _get_fft(self, segment):
         print "Applying FFT"
+        segment = np.append(segment, np.zeros(int(2**np.ceil(np.log2(len(segment))) - len(segment))))
         fd = abs(np.fft.fft(segment))
-        freq = abs(np.fft.fftfreq(len(fd), 1 / float(rate)))
-        print "Done with FFT"
+        freq = abs(np.fft.fftfreq(len(fd), 1 / float(self.rate)))
         return fd, freq
 
     # @staticmethod
     def _get_prominent_freq(self, segment, rate):
         print "Finding prominent frequencies"
-        fd, freq = self._get_fft(segment, rate)
+        fd, freq = self._get_fft(segment)
         smoothed = signal.savgol_filter(fd, 169, 3)
         max_freq = np.argmax(smoothed)
         freq_with_max_amplitude = freq[max_freq]
@@ -195,7 +200,7 @@ drum_mapping = DrumMapping().kick_and_snare
 
 
 
-filename = "/Users/admin/Desktop/BeatBoxExamples/sample3.wav"
+filename = "/Users/admin/Desktop/BeatBoxExamples/sample3_2.wav"
 rate = 44100
 drum_mapping = DrumMapping().kick_and_snare
 os.system("sox {} --rate {} temp_file.wav".format(filename, rate))
