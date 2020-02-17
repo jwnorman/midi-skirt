@@ -178,6 +178,9 @@ class MidiChord:
             MidiEventStager(midi.NoteOffEvent, 0, 0, note, 0)
         ]
 
+    def __repr__(self):
+        return "<MidiChord: {}>".format(self.chord_notes)
+
 
 class ChordBuilder:
     """A class with functions to help create MidiChord instances."""
@@ -305,7 +308,7 @@ class Rhythm:
         num_container_divisions = container / emphasis_quantization
         num_emphasis_notes = random.choice(range(num_container_divisions))
         random_emphasis_combo = np.random.choice(range(num_container_divisions), num_emphasis_notes, replace=False)
-        print "Emphasis on: " + str(np.array(random_emphasis_combo) + 1)
+        # print "Emphasis on: " + str(np.array(random_emphasis_combo) + 1)
         epmhasis_ticks_temp = np.arange(0, container, emphasis_quantization).take(random_emphasis_combo)
         for tick in epmhasis_ticks_temp:
             emphasis_ticks.extend(np.arange(tick, self.rhythm_len, container))
