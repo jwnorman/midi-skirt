@@ -19,10 +19,9 @@ cd midi-skirt/
 ### Install requirements
 ```
 pip install -r requirements.txt
-brew install jupyter
 ```
 
 ### Run and tweak examples!
 ```
-jupyter notebook midi_skirt_runner.ipynb
+iPython -i midi_skirt_examples.py
 ```
