@@ -4,8 +4,10 @@ A tool to overcome bouts of writer's block: randomized rhythms, chord progressio
 ## Setup
 
 ### Setup virtual environment
+The package I use to create the midi, `python-midi` hasn't been updated in 4+ years so it's not Python 3 compatible unfortunately.
 ```
-pyenv virtualenv midi-skirt
+pyenv install 2.7.8
+pyenv virtualenv 2.7.8 midi-skirt
 ```
 
 ### Clone repo
@@ -17,7 +19,6 @@ cd midi-skirt/
 ### Install requirements
 ```
 pip install -r requirements.txt
-
 brew install jupyter
 ```
 
