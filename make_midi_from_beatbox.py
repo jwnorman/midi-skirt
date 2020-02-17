@@ -6,7 +6,7 @@ import peakutils
 import sys
 # import seaborn as sns
 
-# from detect_peaks import detect_peaks
+from detect_peaks import detect_peaks
 from scipy import signal
 from scipy.io import wavfile
 from scipy.stats import rankdata
@@ -36,6 +36,46 @@ class DrumMapping:
         pass
 
 
+def get_peak_info(data, min_dist):
+    print "Finding peaks"
+    thres = np.percentile(data, 98)
+    ids = detect_peaks(data, mph=thres, mpd=min_dist)
+    peaks = data[ids]
+    filtered_ids_and_peaks = [(id_temp, peak) for (id_temp, peak) in zip(ids, peaks) if peak > thres]
+    ids = [temp[0] for temp in filtered_ids_and_peaks]
+    peaks = [temp[1] for temp in filtered_ids_and_peaks]
+    if len(peaks) == 0:
+        sys.exit("No peaks are found. Did you record really quietly?")
+    return (ids, peaks)
+
+
+def get_fft(segment, rate):
+    segment = np.append(segment, np.zeros(int(2**np.ceil(np.log2(len(segment))) - len(segment))))
+    fd = abs(np.fft.fft(segment))
+    freq = abs(np.fft.fftfreq(len(fd), 1 / float(rate)))
+    return fd, freq
+
+
+def get_lit(bins):
+    """
+    input: [30,40,80,120,180,300]
+    output: [(30,40), (40,80), (80,120), (120,180), (180,300)]
+    """
+    bins = zip(bins, np.roll(bins, -1))
+    bins.pop()
+    return bins
+
+
+def load_wav_file(filename):
+    print "Loading wav file"
+    fs, data = wavfile.read(filename)
+    try:
+        channel0 = data[:,0]
+    except:
+        channel0 = data
+    return channel0
+
+
 class WavToMidi:
     def __init__(self, filename, rate, drum_mapping, k):
         self.filename = filename
@@ -48,27 +88,6 @@ class WavToMidi:
         self.drum_mapping = drum_mapping
         self.k = k
 
-    def _load_wav_file(self):
-        print "Loading wav file"
-        fs, data = wavfile.read(self.filename)
-        try:
-            channel0 = data[:,0]
-        except:
-            channel0 = data
-        return channel0
-
-    def _get_peak_info(self, data, min_dist):
-        print "Finding peaks"
-        thres = np.percentile(data, 98)
-        ids = detect_peaks(data, mph=thres, mpd=min_dist)
-        peaks = data[ids]
-        filtered_ids_and_peaks = [(id_temp, peak) for (id_temp, peak) in zip(ids, peaks) if peak > thres]
-        ids = [temp[0] for temp in filtered_ids_and_peaks]
-        peaks = [temp[1] for temp in filtered_ids_and_peaks]
-        if len(peaks) == 0:
-            sys.exit("No peaks are found. Did you record really quietly?")
-        return (ids, peaks)
-
     def _get_bin_markers(self, peak_ids, max_time_id):
         print "Finding bin markers"
         bin_markers = []
@@ -79,23 +98,8 @@ class WavToMidi:
         bin_markers.append(max_time_id)
         return bin_markers
 
-    def _get_lit(self, bins):
-        """
-        input: [30,40,80,120,180,300]
-        output: [(30,40), (40,80), (80,120), (120,180), (180,300)]
-        """
-        bins = zip(bins, np.roll(bins, -1))
-        bins.pop()
-        return bins
-
-    def _get_fft(self, segment):
-        segment = np.append(segment, np.zeros(int(2**np.ceil(np.log2(len(segment))) - len(segment))))
-        fd = abs(np.fft.fft(segment))
-        freq = abs(np.fft.fftfreq(len(fd), 1 / float(self.rate)))
-        return fd, freq
-
-    def _get_prominent_freq(self, segment, rate):
-        fd, freq = self._get_fft(segment)
+    def _get_prominent_freq(self, segment):
+        fd, freq = get_fft(segment, self.rate)
         smoothed = signal.savgol_filter(fd, 169, 3)
         max_freq = np.argmax(smoothed)
         freq_with_max_amplitude = freq[max_freq]
@@ -103,7 +107,7 @@ class WavToMidi:
 
     def _create_signatures(self, segments):
         print "Generating sound signatures"
-        promiment_freqs = [self._get_prominent_freq(segment, self.rate) for segment in segments]
+        promiment_freqs = [self._get_prominent_freq(segment) for segment in segments]
         return pd.DataFrame({
             "prominent_freq": promiment_freqs
         })
@@ -125,10 +129,10 @@ class WavToMidi:
         return pd.concat([info, clusters, signatures], axis=1)
 
     def _get_midi_info_from_wav(self):
-        data = self._load_wav_file()
-        time_ids, peaks = self._get_peak_info(data, self.rate/8.0)
+        data = load_wav_file(self.filename)
+        time_ids, peaks = get_peak_info(data, self.rate/8.0)
         bin_markers = self._get_bin_markers(time_ids, len(data))
-        buckets = self._get_lit(bin_markers)
+        buckets = get_lit(bin_markers)
         segments = [data[np.arange(int(bucket[0]), int(bucket[1]))] for bucket in buckets]
         signatures = self._create_signatures(segments)
         clusters = self._cluster_signatures(signatures, self.k)
@@ -166,6 +170,7 @@ class WavToMidi:
 
 
 filename = "/Users/admin/Desktop/BeatBoxExamples/sample3_5.wav"
+filename = "~/Desktop/beatbox_2.wav"
 rate = 44100
 drum_mapping = DrumMapping().kick_and_snare
 k = 2
