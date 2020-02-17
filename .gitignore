@@ -1,4 +1,6 @@
 musical/*
+.idea*
 .ipynb_checkpoints/
 *.midi
 *.mid
+*.pyc
