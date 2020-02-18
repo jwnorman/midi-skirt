@@ -7,7 +7,11 @@ import numpy as np
 import pandas as pd
 import random
 
-from musical.theory import Note, scale, Scale
+from musical.theory import (
+    Note,
+    scale,
+    Scale,
+)
 
 
 class PatternConstants:
@@ -68,7 +72,7 @@ def make_ticks_rel(track):
         if event.tick >= 0:
             number_before_negative += 1
         else:
-            print number_before_negative
+            print(number_before_negative)
         running_tick += event.tick
     return track
 
@@ -144,7 +148,7 @@ class MidiChord:
             for event, noise in zip(self.staged_events, sorted(noises, reverse=True)):
                 event.start_tick += start_tick + noise
         else:
-            print "wat"
+            print("wat")
         for event in self.staged_events:
             event.start_tick += start_tick + random.randint(noise_range[0], noise_range[1])
 
@@ -308,7 +312,7 @@ class Rhythm:
         num_container_divisions = container / emphasis_quantization
         num_emphasis_notes = random.choice(range(num_container_divisions))
         random_emphasis_combo = np.random.choice(range(num_container_divisions), num_emphasis_notes, replace=False)
-        # print "Emphasis on: " + str(np.array(random_emphasis_combo) + 1)
+        # print("Emphasis on: " + str(np.array(random_emphasis_combo) + 1))
         epmhasis_ticks_temp = np.arange(0, container, emphasis_quantization).take(random_emphasis_combo)
         for tick in epmhasis_ticks_temp:
             emphasis_ticks.extend(np.arange(tick, self.rhythm_len, container))
@@ -406,18 +410,25 @@ def add_tuples_to_track(track, df):
 
 
 class Melody:
-    def __init__(self, melody_len=None, scale=None, quantization=None, note_density=None, note_len_choices=None,
-                 available_notes=None):
+    def __init__(self, root_note=None, octave=None, scale_name=None, melody_len=None, quantization=None, note_density=None, note_len_choices=None):
+        self.root_note = root_note
+        self.octave = octave
+        self.scale_name = scale_name
         self.melody_len = melody_len
         self.quantization = quantization  # this maybe should be at note level only
         self.note_density = note_density  # proportion of available ticks (determined by quantization) occupied by notes
         self.note_len_choices = note_len_choices
-        self.available_notes = available_notes
+
+        self.root = Note((self.root_note, self.octave))
+        self.named_scale = scale.NAMED_SCALES[self.scale_name]
+        self.scale = Scale(self.root, self.named_scale)
+
+        self.available_notes = [self.scale.get(x) for x in range(21, 30)]
         self.number_of_notes = self._compute_num_notes()
         self.start_ticks = self._get_start_ticks()
 
     def _compute_num_notes(self):
-        return self.melody_len / self.quantization
+        return int(self.melody_len * self.note_density / float(self.quantization))
 
     def _get_start_ticks(self):
         return np.unique(sorted([Rhythm().find_nearest_note(random.randint(0, self.melody_len), self.quantization)
@@ -440,3 +451,62 @@ class Melody:
             melody_tuples = self._create_melody_note_tuple(tick)
             melody_notes.extend(melody_tuples)
         return melody_notes
+
+
+class TrackBuilder:
+    def __init__(self, bpm, time_signature_numerator, time_signature_denominator):
+        # Set the track foundation for the chord progression, including time signature, BPM, and get an empty midi
+        # Track object
+        self.bpm = bpm
+        self.time_signature_numerator = time_signature_numerator
+        self.time_signature_denominator = time_signature_denominator
+        self.resolution = 440
+
+        # The following will be set in initialize_or_reset_state()
+        self.pc = None
+        self.pattern = None
+        self.track = None
+        self._initialize_or_reset_state()
+
+    def _initialize_or_reset_state(self):
+        self.pc = PatternConstants(resolution=self.resolution, beats_per_bar=self.time_signature_numerator)
+        self.pattern = midi.Pattern(resolution=self.pc.resolution)
+        self.track = midi.Track()
+        self.pattern.append(self.track)
+        self.track.append(midi.SetTempoEvent(bpm=self.bpm))
+        self.track.append(midi.TimeSignatureEvent(numerator=self.time_signature_numerator,
+                                                  denominator=self.time_signature_denominator))
+
+    def write_chord_progression_to_midi(self, chord_progression_rhythm, filename):
+        self._initialize_or_reset_state()
+
+        # Order the chord progression rhythm by tick and duration
+        all_staged_events = []
+        for chord in chord_progression_rhythm.chords:
+            for staged_event in chord.staged_events:
+                all_staged_events.append(staged_event)
+
+        # Using Pandas df here because it's how I pictured the data in my head (tabularly); probably not the most
+        # efficient
+        staged_events_df = convert_staging_events_to_dataframe(all_staged_events)
+        staged_events_df.sort_values(by=["tick", "duration"], inplace=True)
+
+        self.track = add_tuples_to_track(self.track, staged_events_df)
+
+        # Add the end of track event, append it to the track
+        eot = midi.EndOfTrackEvent(tick=get_max_tick(self.track) + 2 * self.pc.whole_note)
+        self.track.append(eot)
+        self.track = make_ticks_rel(self.track)
+        midi.write_midifile(filename, self.pattern)
+
+    def write_melody_to_midi(self, melody, filename):
+        self._initialize_or_reset_state()
+
+        staged_events_df = convert_staging_events_to_dataframe(melody)
+        staged_events_df.sort_values(by=["tick", "duration"], inplace=True)
+
+        self.track = add_tuples_to_track(self.track, staged_events_df)
+        eot = midi.EndOfTrackEvent(tick=get_max_tick(self.track) + 2 * self.pc.whole_note)
+        self.track.append(eot)
+        self.track = make_ticks_rel(self.track)
+        midi.write_midifile(filename, self.pattern)
