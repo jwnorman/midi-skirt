@@ -1,14 +1,15 @@
 """
 This file has examples for how to use midi_skirt.py. I show a few examples of how to make a chord progression, more
-examples of how to make a rhythm, how to combine the chord progressions with the rhythm, and finally how to write the
-data to a midi file and play the audio.
+examples of how to make a rhythm, how to combine the chord progressions with the rhythm, how to create a melody,
+and finally how to write the data to a midi file and play the audio.
 """
 import midi
 import os
 
-from musical.theory import Note, scale, Scale
+from musical.theory import Chord, Note, scale, Scale
 from midi_skirt import (
     PatternConstants,
+    Melody,
     MidiEventStager,
     MidiChord,
     ChordBuilder,
@@ -22,16 +23,27 @@ from midi_skirt import (
 )
 
 
-# Set the track foundation, including time signature, BPM, and get an empty midi Track object
-bpm = 120
+# Set the track foundation for the chord progression, including time signature, BPM, and get an empty midi Track object
+bpm = 180
 time_signature_numerator = 7
 time_signature_denominator = 8
-pc = PatternConstants(resolution=440, beats_per_bar=time_signature_numerator * 2)
-pattern = midi.Pattern(resolution=pc.resolution)
-track = midi.Track()
-pattern.append(track)
-track.append(midi.SetTempoEvent(bpm=bpm))
-track.append(midi.TimeSignatureEvent(numerator=time_signature_numerator, denominator=time_signature_denominator))
+pc = PatternConstants(resolution=440, beats_per_bar=time_signature_numerator)
+
+# Chord progression foundation
+chord_progression_pattern = midi.Pattern(resolution=pc.resolution)
+chord_progression_track = midi.Track()
+chord_progression_pattern.append(chord_progression_track)
+chord_progression_track.append(midi.SetTempoEvent(bpm=bpm))
+chord_progression_track.append(midi.TimeSignatureEvent(numerator=time_signature_numerator,
+                                                       denominator=time_signature_denominator))
+
+# Chord progression foundation
+melody_pattern = midi.Pattern(resolution=pc.resolution)
+melody_track = midi.Track()
+melody_pattern.append(melody_track)
+melody_track.append(midi.SetTempoEvent(bpm=bpm))
+melody_track.append(midi.TimeSignatureEvent(numerator=time_signature_numerator,
+                                            denominator=time_signature_denominator))
 
 
 # Chord Progression Examples
@@ -198,19 +210,10 @@ def get_rhythm_example_10():
     return rhythm
 
 
-# Sync the chord progression with the rhythm
-cpr = ChordProgressionRhythm(
-    rhythm=get_rhythm_example_10(),
-    chord_progression=get_chord_progression_example_1(),
-    tick_method="direct",  # "direct" or "random" or "random_once" or "random_asc" or "random_desc"
-    vel_method="random",  # "direct" or "random"
-    tick_noise=[-55, 55])  # only used if tick_method is done randomly
-
-
-def write_to_midi(track, pattern, cpr, filename):
+def write_chord_progression_to_midi(track, pattern, chord_progression, filename):
     # Order the chord progression rhythm by tick and duration
     all_staged_events = []
-    for chord in cpr.chords:
+    for chord in chord_progression.chords:
         for staged_event in chord.staged_events:
             all_staged_events.append(staged_event)
     # Using Pandas df here because it's how I pictured the data in my head (tabularly); probably not the most efficient
@@ -225,5 +228,48 @@ def write_to_midi(track, pattern, cpr, filename):
     track = make_ticks_rel(track)
     midi.write_midifile(filename, pattern)
 
-write_to_midi(track=track, pattern=pattern, cpr=cpr, filename="example.mid")
+
+def write_melody_to_midi(track, pattern, melody, filename):
+    staged_events_df = convert_staging_events_to_dataframe(melody)
+    staged_events_df.sort_values(by=["tick", "duration"], inplace=True)
+
+    track = add_tuples_to_track(track, staged_events_df)
+    eot = midi.EndOfTrackEvent(tick=get_max_tick(track) + 2 * pc.whole_note)
+    track.append(eot)
+    track = make_ticks_rel(track)
+    midi.write_midifile(filename, pattern)
+
+
+# Sync the chord progression with the rhythm
+rhythm = get_rhythm_example_2()
+chord_progression = get_chord_progression_example_2()
+cpr = ChordProgressionRhythm(
+    rhythm=rhythm,
+    chord_progression=chord_progression,
+    tick_method="direct",  # "direct" or "random" or "random_once" or "random_asc" or "random_desc"
+    vel_method="random",  # "direct" or "random"
+    tick_noise=[-55, 55])  # only used if tick_method is done randomly
+
+
+root = Note(('G', 4))
+named_scale = scale.NAMED_SCALES['locrian']
+my_scale = Scale(root, named_scale)
+# chords_in_scale = Chord.progression(my_scale, 5)
+# my_chords = [chords_in_scale[0]] + [chords_in_scale[5]] + [chords_in_scale[3]] + [chords_in_scale[4]]
+# chord_notes = [ChordBuilder().get_list_of_chord_notes_from_chord(my_chord) for my_chord in my_chords]
+
+melody = Melody(
+    melody_len=pc.bar*64,
+    quantization=pc.sixteenth_note,
+    note_density=.4,
+    note_len_choices=[pc.quarter_note, pc.eighth_note, pc.sixteenth_note, pc.sixty_forth_note,
+                      pc.half_note, pc.thirty_second_note],
+    available_notes=[my_scale.get(x) for x in range(28, 37)])
+
+my_melody = melody.create_melody()
+
+
+write_chord_progression_to_midi(track=chord_progression_track, pattern=chord_progression_pattern, chord_progression=cpr,
+                                filename="chord_progression.mid")
+write_melody_to_midi(track=melody_track, pattern=melody_pattern, melody=my_melody, filename="melody.mid")
 os.system("timidity --adjust-tempo={} example.mid".format(bpm))

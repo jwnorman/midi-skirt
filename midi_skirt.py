@@ -226,7 +226,7 @@ class ChordBuilder:
         chord.build_chord()
         return chord
 
-    def _get_list_of_chord_notes_from_chord(self, notes):
+    def get_list_of_chord_notes_from_chord(self, notes):
         return [Note.index_from_string(chord_note.note + str(chord_note.octave)) for chord_note in notes]
 
     def _deal_with_pitch_accidentals(self, interval):
@@ -340,14 +340,14 @@ class Rhythm:
 
     def _get_random_start_ticks(self, number_of_notes):
         return np.unique(sorted([
-            self._find_nearest_note(
+            self.find_nearest_note(
                 value=random.randint(0, self.rhythm_len) + self.start_tick,
                 note_type=self.quantization)
             for _ in range(number_of_notes)]))
 
-    def _find_nearest_note(self, value, note_type):
+    def find_nearest_note(self, value, note_type):
         mod = value % note_type
-        if (mod > (note_type / 2.0)):  # round up
+        if mod > (note_type / 2.0):  # round up
             return value + note_type - mod
         else:
             return value - mod
@@ -398,43 +398,45 @@ class ChordProgressionRhythm:
 def add_tuples_to_track(track, df):
     for row in df.iterrows():
         data = row[1]
+        pitch = data["pitch"] if isinstance(data["pitch"], int) else Note.index_from_string(data["pitch"])
         track.append(data["event_type_fun"](tick=data["tick"],
                                             velocity=data["velocity"],
-                                            pitch=Note.index_from_string(data["pitch"])))
+                                            pitch=pitch))
     return track
 
-# class Melody:
-#     def __init__(self, melody_len=None, scale=None, quantization=None, note_density=None, note_len_choices=None,
-#                  available_notes=None):
-#         self.melody_len = melody_len
-#         self.quantization = quantization  # this maybe should be at note level only
-#         self.note_density = note_density  # proportion of available ticks (determined by quantization) occupied by notes
-#         self.note_len_choices = note_len_choices
-#         self.available_notes = available_notes
-#         self.number_of_notes = self._compute_num_notes()
-#         self.start_ticks = self._get_start_ticks()
 
-#     def _compute_num_notes(self):
-#         return self.melody_len / self.quantization
+class Melody:
+    def __init__(self, melody_len=None, scale=None, quantization=None, note_density=None, note_len_choices=None,
+                 available_notes=None):
+        self.melody_len = melody_len
+        self.quantization = quantization  # this maybe should be at note level only
+        self.note_density = note_density  # proportion of available ticks (determined by quantization) occupied by notes
+        self.note_len_choices = note_len_choices
+        self.available_notes = available_notes
+        self.number_of_notes = self._compute_num_notes()
+        self.start_ticks = self._get_start_ticks()
 
-#     def _get_start_ticks(self):
-#         return np.unique(sorted([find_nearest_note(random.randint(0, self.melody_len), self.quantization)
-#                                  for _ in range(self.number_of_notes)]))
+    def _compute_num_notes(self):
+        return self.melody_len / self.quantization
 
-#     def create_melody(self):
-#         melody_notes = []
-#         for tick in self.start_ticks:
-#             melody_tuples = self._create_melody_note_tuple(tick)
-#             melody_notes.extend(melody_tuples)
-#         return melody_notes
+    def _get_start_ticks(self):
+        return np.unique(sorted([Rhythm().find_nearest_note(random.randint(0, self.melody_len), self.quantization)
+                                 for _ in range(self.number_of_notes)]))
 
-#     def _create_melody_note_tuple(self, start_tick):
-#         note_id = str(uuid.uuid1())
-#         velocity = random.randint(50, 90)
-#         cur_note = random.choice(self.available_notes)
-#         cur_note = Note.index_from_string(cur_note.note + str(cur_note.octave))
-#         note_length = random.choice(self.note_len_choices)
-#         return [
-#             (note_id, midi.NoteOnEvent, start_tick, cur_note, note_length, velocity),
-#             (note_id, midi.NoteOffEvent, start_tick+note_length, cur_note, note_length, 0)
-#         ]
+    def _create_melody_note_tuple(self, start_tick):
+        velocity = random.randint(50, 90)
+        cur_note = random.choice(self.available_notes)
+        cur_note = Note.index_from_string(cur_note.note + str(cur_note.octave))
+        note_length = random.choice(self.note_len_choices)
+        # ["event_type_fun", "tick", "duration", "pitch", "velocity"]
+        return [
+            MidiEventStager(midi.NoteOnEvent, start_tick, note_length, cur_note, velocity),
+            MidiEventStager(midi.NoteOffEvent, start_tick+note_length, note_length, cur_note, 0)
+        ]
+
+    def create_melody(self):
+        melody_notes = []
+        for tick in self.start_ticks:
+            melody_tuples = self._create_melody_note_tuple(tick)
+            melody_notes.extend(melody_tuples)
+        return melody_notes
