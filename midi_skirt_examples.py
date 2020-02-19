@@ -37,7 +37,7 @@ def get_chord_progression_example_2(track):
     )
 
     # To see which scales are available: `scale.NAMED_SCALES.keys()`
-    chord_progression.build_progression_randomly_from_scale(root="G", octave=4, scale="locrian",
+    chord_progression.build_progression_randomly_from_scale(root="G", octave=4, scale_name="locrian",
                                                             num_chords=num_chords_and_changes)
     return chord_progression
 
@@ -159,7 +159,7 @@ def get_rhythm_example_9(track):
     rhythm = Rhythm(rhythm_len=rhythm_len, start_tick=start_tick, quantization=quantization)
     rhythm.build_rhythm_randomly(note_density=note_density, note_len_choices=note_len_choices)
     rhythm.build_emphasis_ticks_directly(emphasis_quantization=track.pc.beat, container=track.pc.bar,
-                                         emphasis_divisions=[2,5])  # sounds nice in 11/4 (3+8)
+                                         emphasis_divisions=[2, 5])  # sounds nice in 11/4 (3+8)
     return rhythm
 
 
@@ -177,14 +177,14 @@ def get_rhythm_example_10(track):
     return rhythm
 
 
-track = TrackBuilder(bpm=180, time_signature_numerator=7, time_signature_denominator=8)
+track_instance = TrackBuilder(bpm=180, time_signature_numerator=7, time_signature_denominator=8)
 
 # Sync the chord progression with the rhythm
-rhythm = get_rhythm_example_2(track)
-chord_progression = get_chord_progression_example_2(track)
+rhythm_instance = get_rhythm_example_2(track_instance)
+chord_progression_instance = get_chord_progression_example_2(track_instance)
 cpr = ChordProgressionRhythm(
-    rhythm=rhythm,
-    chord_progression=chord_progression,
+    rhythm=rhythm_instance,
+    chord_progression=chord_progression_instance,
     tick_method="direct",  # "direct" or "random" or "random_once" or "random_asc" or "random_desc"
     vel_method="random",  # "direct" or "random"
     tick_noise=[-55, 55])  # only used if tick_method is done randomly
@@ -193,15 +193,15 @@ melody = Melody(
     root_note='G',
     octave=4,
     scale_name="locrian",
-    melody_len=track.pc.bar*64,
-    quantization=track.pc.eighth_note,
+    melody_len=track_instance.pc.bar * 64,
+    quantization=track_instance.pc.eighth_note,
     note_density=.4,
-    note_len_choices=[track.pc.quarter_note, track.pc.eighth_note, track.pc.half_note])
+    note_len_choices=[track_instance.pc.quarter_note, track_instance.pc.eighth_note, track_instance.pc.half_note])
 
 my_melody = melody.create_melody()
 
 
 # to play the midi file, import into GarageBand or Logic or run with the command line:
 # `timidity --adjust-tempo=120 melody2.mid`
-track.write_chord_progression_to_midi(chord_progression_rhythm=cpr, filename="chord_progression.mid")
-track.write_melody_to_midi(melody=my_melody, filename="melody2.mid")
+track_instance.write_chord_progression_to_midi(chord_progression_rhythm=cpr, filename="chord_progression.mid")
+track_instance.write_melody_to_midi(melody=my_melody, filename="melody2.mid")

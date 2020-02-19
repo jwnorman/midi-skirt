@@ -175,7 +175,8 @@ class MidiChord:
             if event.midi_event_fun.name == "Note On":
                 event.velocity = random.randint(min_vel, max_vel)
 
-    def _create_note_tuple(self, note):
+    @staticmethod
+    def _create_note_tuple(note):
         return [
             MidiEventStager(midi.NoteOnEvent, 0, 0, note, 0),
             MidiEventStager(midi.NoteOffEvent, 0, 0, note, 0)
@@ -187,19 +188,20 @@ class MidiChord:
 
 class ChordBuilder:
     """A class with functions to help create MidiChord instances."""
+    def __init__(self):
+        pass
 
     def build_from_intervals(self, root, octave, intervals, scale_name="major"):
         """Given chord specs return a MidiChord object of said chord.
 
-        root: string of the note.
-        octave: an integer between 0 and 8 (or 9 or something)
-        intervals: a list of note intervals relative to the root. Use 'b' for flat and '#' for sharp.
-
         usage:
             chord = ChordBuilder().build_from_intervals('c', 6, ["1", "3", "5", "b7", "#9"])
 
-        returns:
-            a MidiChord object
+        :param root: string of the note.
+        :param octave: an integer between 0 and 8 (or 9 or something)
+        :param intervals: a list of note intervals relative to the root. Use 'b' for flat and '#' for sharp.
+        :param scale_name: the scale from which to select notes
+        :return: a Chord object
         """
         named_scale = scale.NAMED_SCALES[scale_name]
         my_scale = Scale(Note((root.upper(), octave)), named_scale)
@@ -211,12 +213,14 @@ class ChordBuilder:
         chord.build_chord()
         return chord
 
-    def build_directly(self, notes):
+    @staticmethod
+    def build_directly(notes):
         chord = MidiChord([note.note + str(note.octave) for note in notes])
         chord.build_chord()
         return chord
 
-    def build_randomly_from_scale(self, root, octave, scale_name="major", num_note_choices=[3, 4, 5]):
+    @staticmethod
+    def build_randomly_from_scale(root, octave, scale_name="major", num_note_choices=[3, 4, 5]):
         named_scale = scale.NAMED_SCALES[scale_name]
         my_scale = Scale(Note((root.upper(), octave)), named_scale)
         num_notes_in_scale = len(my_scale)
@@ -229,10 +233,12 @@ class ChordBuilder:
         chord.build_chord()
         return chord
 
-    def get_list_of_chord_notes_from_chord(self, notes):
+    @staticmethod
+    def get_list_of_chord_notes_from_chord(notes):
         return [Note.index_from_string(chord_note.note + str(chord_note.octave)) for chord_note in notes]
 
-    def _deal_with_pitch_accidentals(self, interval):
+    @staticmethod
+    def _deal_with_pitch_accidentals(interval):
         # input "b9" output (9, -1)
         # input "#9" output (9, 1)
         # input "9" output (9, 0)
@@ -243,7 +249,7 @@ class ChordBuilder:
         else:
             transposition = 0
         note = int(interval.replace("b", "").replace("#", ""))
-        return((note, transposition))
+        return note, transposition
 
 
 class ChordProgression:
@@ -257,9 +263,9 @@ class ChordProgression:
         self.chords = chords
         self.changes = changes
 
-    def build_progression_randomly_from_scale(self, root, octave, scale, num_chords):
+    def build_progression_randomly_from_scale(self, root, octave, scale_name, num_chords):
         # for now the number of notes in each chord is random choice of 3, 4, or 5
-        self.chords = [ChordBuilder().build_randomly_from_scale(root, octave, scale) for _ in range(num_chords)]
+        self.chords = [ChordBuilder().build_randomly_from_scale(root, octave, scale_name) for _ in range(num_chords)]
 
     def build_changes_randomly(self, duration_choices):
         pass
@@ -295,6 +301,7 @@ class Rhythm:
         self.emphasis_velocities = emphasis_velocities
         self.start_ticks = []
         self.note_lengths = []
+        self.emphases = []
 
     def build_rhythm_randomly(self, note_density, note_len_choices):
         number_of_notes = self._compute_num_notes(note_density)
@@ -348,7 +355,8 @@ class Rhythm:
                 note_type=self.quantization)
             for _ in range(number_of_notes)]))
 
-    def find_nearest_note(self, value, note_type):
+    @staticmethod
+    def find_nearest_note(value, note_type):
         mod = value % note_type
         if mod > (note_type / 2.0):  # round up
             return value + note_type - mod
@@ -409,7 +417,8 @@ def add_tuples_to_track(track, df):
 
 
 class Melody:
-    def __init__(self, root_note=None, octave=None, scale_name=None, melody_len=None, quantization=None, note_density=None, note_len_choices=None):
+    def __init__(self, root_note=None, octave=None, scale_name=None, melody_len=None, quantization=None,
+                 note_density=None, note_len_choices=None):
         self.root_note = root_note
         self.octave = octave
         self.scale_name = scale_name
