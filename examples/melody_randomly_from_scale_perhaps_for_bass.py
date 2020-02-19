@@ -8,16 +8,17 @@ from midi_skirt import (
 # Track constants
 bpm = 120
 time_signature = '3/4'
-track_instance = TrackBuilder(bpm=bpm, time_signature=time_signature)
+pattern_constants = PatternConstants(resolution=440, time_signature=time_signature)
+track_instance = TrackBuilder(pattern_constants=pattern_constants, bpm=bpm, time_signature=time_signature)
 
 # Melody constants
 melody_root_note = 'G'
 melody_octave = 4
 melody_scale = "locrian"
-melody_len = track_instance.pc.bar * 64
-melody_quantization = track_instance.pc.eighth_note
+melody_len = pattern_constants.bar * 64
+melody_quantization = pattern_constants.eighth_note
 melody_note_density = .4
-melody_note_len_choices = [track_instance.pc.quarter_note, track_instance.pc.eighth_note, track_instance.pc.half_note]
+melody_note_len_choices = [pattern_constants.quarter_note, pattern_constants.eighth_note, pattern_constants.half_note]
 
 melody = Melody(
     root_note=melody_root_note,

@@ -15,12 +15,12 @@ from musical.theory import (
 
 
 class PatternConstants:
-    def __init__(self, resolution=440, beats_per_bar=4):
+    def __init__(self, resolution=440, time_signature='4/4'):
+        self.beats_per_bar, _ = [int(i) for i in time_signature.split('/')]
         self.resolution = resolution
         self.beat = resolution
         self.quarter_note = resolution
-        self.beats_per_bar = beats_per_bar
-        self.bar = self.beat * beats_per_bar
+        self.bar = self.beat * self.beats_per_bar
         self.half_note = self.quarter_note * 2
         self.eighth_note = int(self.quarter_note / 2.0)
         self.sixteenth_note = int(self.quarter_note / 4.0)
@@ -463,15 +463,15 @@ class Melody:
 
 
 class TrackBuilder:
-    def __init__(self, bpm, time_signature):
+    def __init__(self, pattern_constants, bpm, time_signature):
         # Set the track foundation for the chord progression, including time signature, BPM, and get an empty midi
         # Track object
+        self.pc = pattern_constants
         self.bpm = bpm
         self.time_signature_numerator, self.time_signature_denominator = [int(i) for i in time_signature.split('/')]
         self.resolution = 440
 
         # The following will be set in initialize_or_reset_state()
-        self.pc = None
         self.pattern = None
         self.track = None
         self.track_uuid = None
@@ -480,7 +480,6 @@ class TrackBuilder:
 
     def _initialize_or_reset_state(self):
         self.track_uuid = str(uuid.uuid4())[0:7]
-        self.pc = PatternConstants(resolution=self.resolution, beats_per_bar=self.time_signature_numerator)
         self.pattern = midi.Pattern(resolution=self.pc.resolution)
         self.track = midi.Track()
         self.pattern.append(self.track)

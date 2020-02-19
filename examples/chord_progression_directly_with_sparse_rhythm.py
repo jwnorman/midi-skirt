@@ -4,6 +4,7 @@ from midi_skirt import (
     ChordBuilder,
     ChordProgression,
     ChordProgressionRhythm,
+    PatternConstants,
     Rhythm,
     TrackBuilder,
 )
@@ -11,16 +12,17 @@ from midi_skirt import (
 # Track constants
 bpm = 90
 time_signature = '4/4'
-track_instance = TrackBuilder(bpm=bpm, time_signature=time_signature)
+pattern_constants = PatternConstants(resolution=440, time_signature=time_signature)
+track_instance = TrackBuilder(pattern_constants=pattern_constants, bpm=bpm, time_signature=time_signature)
 
 # Rhythm constants
-rhythm_length = track_instance.pc.bar * 64
-rhythm_quantization = track_instance.pc.sixteenth_note
+rhythm_length = pattern_constants.bar * 64
+rhythm_quantization = pattern_constants.sixteenth_note
 rhythm_note_density = 0.3
-rhythm_note_len_choices = [track_instance.pc.quarter_note, track_instance.pc.eighth_note, track_instance.pc.half_note]
+rhythm_note_len_choices = [pattern_constants.quarter_note, pattern_constants.eighth_note, pattern_constants.half_note]
 
 # ChordProgression constants
-chord_progression_changes = [track_instance.pc.bar] * 4
+chord_progression_changes = [pattern_constants.bar] * 4
 chord_progression_octave = 4
 chord_progression_repeat = 16
 

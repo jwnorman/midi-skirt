@@ -10,16 +10,17 @@ from midi_skirt import (
 # Track constants
 bpm = 160
 time_signature = '3/4'
-track_instance = TrackBuilder(bpm=bpm, time_signature=time_signature)
+pattern_constants = PatternConstants(resolution=440, time_signature=time_signature)
+track_instance = TrackBuilder(pattern_constants=pattern_constants, bpm=bpm, time_signature=time_signature)
 
 # Rhythm constants
-rhythm_length = track_instance.pc.bar * 64
-rhythm_quantization = track_instance.pc.beat
+rhythm_length = pattern_constants.bar * 64
+rhythm_quantization = pattern_constants.beat
 rhythm_note_density = 10.0
-rhythm_note_len_choices = [track_instance.pc.beat]
+rhythm_note_len_choices = [pattern_constants.beat]
 
 # ChordProgression constants
-chord_progression_changes = [track_instance.pc.bar] * 64
+chord_progression_changes = [pattern_constants.bar] * 64
 chord_progression_root = "G"
 chord_progression_octave = 4
 chord_progression_scale_name = "locrian"
