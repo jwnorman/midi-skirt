@@ -46,23 +46,6 @@ class PatternConstants:
         sixty_forth = int(self.sixty_forth_note / float(divisions))
         return[half, quarter, eighth, sixteenth, thirty_second, sixty_forth]
 
-    def get_notes_2(self):
-        return [self.sixty_forth_note, self.thirty_second_note, self.sixteenth_note, self.eighth_note,
-                self.quarter_note, self.half_note, self.whole_note]
-
-    def get_notes_3(self):
-        return [self.sixty_forth_triplet, self.thirty_second_triplet, self.sixteenth_triplet,
-                self.eighth_triplet, self.quarter_triplet, self.half_triplet, self.whole_note]
-
-    def get_notes_5(self):
-        return [self.sixteenth_fifth, self.eighth_fifth, self.quarter_fifth, self.half_fifth, self.whole_note]
-
-    def get_notes_7(self):
-        return [self.sixteenth_seventh, self.eighth_seventh, self.quarter_seventh, self.half_seventh, self.whole_note]
-
-    def get_notes_9(self):
-        return [self.sixteenth_ninth, self.eighth_ninth, self.quarter_ninth, self.half_ninth, self.whole_note]
-
 
 def make_ticks_rel(track):
     number_before_negative = 0

@@ -12,7 +12,7 @@ def get_rhythm_example_3(track):
     start_tick = 0
     quantization = track.pc.half_note
     note_density = 10.0
-    note_len_choices = track.pc.get_notes_3()
+    note_len_choices = track.pc.get_notes(3)
 
     rhythm = Rhythm(rhythm_len=rhythm_len, start_tick=start_tick, quantization=quantization)
     rhythm.build_rhythm_randomly(note_density=note_density, note_len_choices=note_len_choices)
@@ -25,7 +25,7 @@ def get_rhythm_example_4(track):
     start_tick = 0
     quantization = track.pc.half_triplet
     note_density = 10.0
-    note_len_choices = track.pc.get_notes_3()
+    note_len_choices = track.pc.get_notes(3)
 
     rhythm = Rhythm(rhythm_len=rhythm_len, start_tick=start_tick, quantization=quantization)
     rhythm.build_rhythm_randomly(note_density=note_density, note_len_choices=note_len_choices)
@@ -38,7 +38,7 @@ def get_rhythm_example_5(track):
     start_tick = 0
     quantization = track.pc.half_fifth
     note_density = 10.0
-    note_len_choices = track.pc.get_notes_5()
+    note_len_choices = track.pc.get_notes(5)
 
     rhythm = Rhythm(rhythm_len=rhythm_len, start_tick=start_tick, quantization=quantization)
     rhythm.build_rhythm_randomly(note_density=note_density, note_len_choices=note_len_choices)
@@ -51,7 +51,7 @@ def get_rhythm_example_6(track):
     start_tick = 0
     quantization = track.pc.half_seventh
     note_density = 10.0
-    note_len_choices = track.pc.get_notes_7()
+    note_len_choices = track.pc.get_notes(7)
 
     rhythm = Rhythm(rhythm_len=rhythm_len, start_tick=start_tick, quantization=quantization)
     rhythm.build_rhythm_randomly(note_density=note_density, note_len_choices=note_len_choices)
@@ -64,7 +64,7 @@ def get_rhythm_example_7(track):
     start_tick = 0
     quantization = track.pc.half_ninth
     note_density = 10.0
-    note_len_choices = track.pc.get_notes_9()
+    note_len_choices = track.pc.get_notes(9)
 
     rhythm = Rhythm(rhythm_len=rhythm_len, start_tick=start_tick, quantization=quantization)
     rhythm.build_rhythm_randomly(note_density=note_density, note_len_choices=note_len_choices)
