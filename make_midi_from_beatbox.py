@@ -18,13 +18,18 @@ from midi_skirt import (
 
 
 class DrumMapping:
-    def kick_and_snare(self, cluster):
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def kick_and_snare(cluster):
         return {
             1: "C3",
             2: "D3"
         }[cluster]
 
-    def kick_snare_and_high_hat(self, cluster):
+    @staticmethod
+    def kick_snare_and_high_hat(cluster):
         return {
             1: "C3",
             2: "D3",
@@ -60,8 +65,9 @@ def get_fft(segment, rate):
 
 def get_lit(bins):
     """
-    input: [30,40,80,120,180,300]
-    output: [(30,40), (40,80), (80,120), (120,180), (180,300)]
+    :param bins: [30, 40, 80, 120, 180, 300]
+
+    Returns list of tuples representing buckets, e.g., [(30,40), (40,80), (80,120), (120,180), (180,300)]
     """
     bins = zip(bins, np.roll(bins, -1))
     bins.pop()
@@ -72,7 +78,7 @@ def load_wav_file(filename):
     print "Loading wav file"
     fs, data = wavfile.read(filename)
     try:
-        channel0 = data[:,0]
+        channel0 = data[:, 0]
     except:
         channel0 = data
     return channel0
@@ -103,9 +109,10 @@ class WavToMidi:
         self.drum_mapping = drum_mapping
         self.k = k
 
-    def _get_bin_markers(self, peak_ids, max_time_id):
+    @staticmethod
+    def _get_bin_markers(peak_ids, max_time_id):
         print "Finding bin markers"
-        bin_markers = []
+        bin_markers = list()
         bin_markers.append(0)
         for index in range(len(peak_ids) - 1):
             temp_mean = (peak_ids[index] + peak_ids[index + 1]) / 2
@@ -127,7 +134,8 @@ class WavToMidi:
             "prominent_freq": promiment_freqs
         })
 
-    def _cluster_signatures(self, signatures, k=2):
+    @staticmethod
+    def _cluster_signatures(signatures, k=2):
         print "Clustering signatures"
         kmeans = KMeans(n_clusters=k, random_state=0, n_init=100).fit(signatures)
         rank_mapping = dict(zip(range(k), rankdata(kmeans.cluster_centers_, "dense")))
@@ -136,7 +144,8 @@ class WavToMidi:
             "rank": [rank_mapping[label] for label in kmeans.labels_]
         })
 
-    def _get_midi_info(self, time_ids, peaks, signatures, clusters):
+    @staticmethod
+    def _get_midi_info(time_ids, peaks, signatures, clusters):
         info = pd.DataFrame({
             "time_ids": time_ids,
             "peaks": peaks
@@ -154,13 +163,15 @@ class WavToMidi:
         midi_info = self._get_midi_info(time_ids, peaks, signatures, clusters)
         return midi_info
 
-    def convert_amplitude_to_velocity(self, amp, min_amp, max_amp, min_vel, max_vel):
+    @staticmethod
+    def convert_amplitude_to_velocity(amp, min_amp, max_amp, min_vel, max_vel):
         try:
             return int((max_vel - min_vel) / float(max_amp - min_amp) * amp + min_vel)
         except:
             return 0
 
-    def convert_sample_to_tick(self, pc, time_id, num_samples=44100):
+    @staticmethod
+    def convert_sample_to_tick(pc, time_id, num_samples=44100):
         spb = 60 / 120.0
         tpb = pc.resolution
         return int((time_id / float(num_samples)) * (1.0 / spb * tpb))
@@ -174,7 +185,8 @@ class WavToMidi:
             vel = self.convert_amplitude_to_velocity(row.peaks, min_amp, max_amp, 50, 100)
             tick = self.convert_sample_to_tick(self.pc, row.time_ids, self.rate)
             self.all_staged_events.append(MidiEventStager(midi.NoteOnEvent, tick, self.pc.eighth_note, drum, vel))
-            self.all_staged_events.append(MidiEventStager(midi.NoteOffEvent, tick + self.pc.eighth_note, self.pc.eighth_note, drum, vel))
+            self.all_staged_events.append(MidiEventStager(midi.NoteOffEvent, tick + self.pc.eighth_note,
+                                                          self.pc.eighth_note, drum, vel))
         df = convert_staging_events_to_dataframe(self.all_staged_events)
         df.sort_values(by=["tick", "duration"], inplace=True)
         self.track = add_tuples_to_track(self.track, df)
@@ -205,4 +217,3 @@ wav_to_midi = WavToMidi("temp_file.wav", rate, drum_mapping, k)
 pattern = wav_to_midi.convert_wav_to_midi()
 midi.write_midifile("example.mid", pattern)
 os.system("rm temp_file.wav")
-
