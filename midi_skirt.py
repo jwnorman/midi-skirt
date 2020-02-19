@@ -1,7 +1,6 @@
 """Tools to help build random rhythms, chord progressions, and melodies."""
 
 import copy
-import itertools
 import midi
 import numpy as np
 import pandas as pd

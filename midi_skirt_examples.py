@@ -3,10 +3,6 @@ This file has examples for how to use midi_skirt.py. I show a few examples of ho
 examples of how to make a rhythm, how to combine the chord progressions with the rhythm, how to create a melody,
 and finally how to write the data to a midi file and play the audio.
 """
-import midi
-import os
-
-from musical.theory import scale
 from midi_skirt import (
     ChordBuilder,
     ChordProgression,
@@ -205,6 +201,7 @@ melody = Melody(
 my_melody = melody.create_melody()
 
 
+# to play the midi file, import into GarageBand or Logic or run with the command line:
+# `timidity --adjust-tempo=120 melody2.mid`
 track.write_chord_progression_to_midi(chord_progression_rhythm=cpr, filename="chord_progression.mid")
 track.write_melody_to_midi(melody=my_melody, filename="melody2.mid")
-# os.system("timidity --adjust-tempo={} example.mid".format(bpm))
