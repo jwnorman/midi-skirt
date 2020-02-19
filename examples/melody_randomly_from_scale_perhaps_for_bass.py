@@ -2,6 +2,7 @@ import os
 
 from midi_skirt import (
     Melody,
+    PatternConstants,
     TrackBuilder,
 )
 

@@ -44,20 +44,7 @@ class PatternConstants:
         sixteenth = int(self.sixteenth_note / float(divisions))
         thirty_second = int(self.thirty_second_note / float(divisions))
         sixty_forth = int(self.sixty_forth_note / float(divisions))
-        return[half, quarter, eighth, sixteenth, thirty_second, sixty_forth]
-
-
-def make_ticks_rel(track):
-    number_before_negative = 0
-    running_tick = 0
-    for event in track:
-        event.tick -= running_tick
-        if event.tick >= 0:
-            number_before_negative += 1
-        else:
-            print(number_before_negative)
-        running_tick += event.tick
-    return track
+        return [half, quarter, eighth, sixteenth, thirty_second, sixty_forth]
 
 
 def get_max_tick(track):
@@ -470,6 +457,23 @@ class TrackBuilder:
         self.track.append(midi.TimeSignatureEvent(numerator=self.time_signature_numerator,
                                                   denominator=self.time_signature_denominator))
 
+    def make_ticks_rel(self):
+        number_before_negative = 0
+        running_tick = 0
+        for event in self.track:
+            event.tick -= running_tick
+            if event.tick >= 0:
+                number_before_negative += 1
+            else:
+                print(number_before_negative)
+            running_tick += event.tick
+
+    def get_max_tick(track):
+        return max([event.tick for event in track])
+
+    def get_min_tick(track):
+        return min([event.tick for event in track])
+
     def write_chord_progression_to_midi(self, chord_progression_rhythm, filename):
         self._initialize_or_reset_state()
 
@@ -487,7 +491,7 @@ class TrackBuilder:
         # Add the end of track event, append it to the track
         eot = midi.EndOfTrackEvent(tick=get_max_tick(self.track) + 2 * self.pc.whole_note)
         self.track.append(eot)
-        self.track = make_ticks_rel(self.track)
+        self.make_ticks_rel()
         self.track_filename = "example_outputs/" + filename + "_" + self.track_uuid + ".mid"
         midi.write_midifile(self.track_filename, self.pattern)
 
@@ -500,6 +504,6 @@ class TrackBuilder:
         self.track = add_tuples_to_track(self.track, staged_events_df)
         eot = midi.EndOfTrackEvent(tick=get_max_tick(self.track) + 2 * self.pc.whole_note)
         self.track.append(eot)
-        self.track = make_ticks_rel(self.track)
+        self.make_ticks_rel()
         self.track_filename = "example_outputs/" + filename + "_" + self.track_uuid + ".mid"
         midi.write_midifile(self.track_filename, self.pattern)

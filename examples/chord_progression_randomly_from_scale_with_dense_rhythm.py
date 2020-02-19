@@ -3,6 +3,7 @@ import os
 from midi_skirt import (
     ChordProgression,
     ChordProgressionRhythm,
+    PatternConstants,
     Rhythm,
     TrackBuilder,
 )

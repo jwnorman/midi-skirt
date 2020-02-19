@@ -12,7 +12,9 @@ from scipy.io import wavfile
 from scipy.stats import rankdata
 from sklearn.cluster import KMeans
 
-from midi_skirt import *
+from midi_skirt import (
+    PatternConstants,
+)
 
 
 class DrumMapping:
@@ -46,7 +48,7 @@ def get_peak_info(data, min_dist):
     peaks = [temp[1] for temp in filtered_ids_and_peaks]
     if len(peaks) == 0:
         sys.exit("No peaks are found. Did you record really quietly?")
-    return (ids, peaks)
+    return ids, peaks
 
 
 def get_fft(segment, rate):
@@ -74,6 +76,19 @@ def load_wav_file(filename):
     except:
         channel0 = data
     return channel0
+
+
+def make_ticks_rel(track):
+    number_before_negative = 0
+    running_tick = 0
+    for event in track:
+        event.tick -= running_tick
+        if event.tick >= 0:
+            number_before_negative += 1
+        else:
+            print(number_before_negative)
+        running_tick += event.tick
+    return track
 
 
 class WavToMidi:
