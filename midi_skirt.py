@@ -5,6 +5,7 @@ import midi
 import numpy as np
 import pandas as pd
 import random
+import uuid
 
 from musical.theory import (
     Note,
@@ -462,21 +463,23 @@ class Melody:
 
 
 class TrackBuilder:
-    def __init__(self, bpm, time_signature_numerator, time_signature_denominator):
+    def __init__(self, bpm, time_signature):
         # Set the track foundation for the chord progression, including time signature, BPM, and get an empty midi
         # Track object
         self.bpm = bpm
-        self.time_signature_numerator = time_signature_numerator
-        self.time_signature_denominator = time_signature_denominator
+        self.time_signature_numerator, self.time_signature_denominator = [int(i) for i in time_signature.split('/')]
         self.resolution = 440
 
         # The following will be set in initialize_or_reset_state()
         self.pc = None
         self.pattern = None
         self.track = None
+        self.track_uuid = None
+        self.track_filename = None
         self._initialize_or_reset_state()
 
     def _initialize_or_reset_state(self):
+        self.track_uuid = str(uuid.uuid4())[0:7]
         self.pc = PatternConstants(resolution=self.resolution, beats_per_bar=self.time_signature_numerator)
         self.pattern = midi.Pattern(resolution=self.pc.resolution)
         self.track = midi.Track()
@@ -494,8 +497,6 @@ class TrackBuilder:
             for staged_event in chord.staged_events:
                 all_staged_events.append(staged_event)
 
-        # Using Pandas df here because it's how I pictured the data in my head (tabularly); probably not the most
-        # efficient
         staged_events_df = convert_staging_events_to_dataframe(all_staged_events)
         staged_events_df.sort_values(by=["tick", "duration"], inplace=True)
 
@@ -505,7 +506,8 @@ class TrackBuilder:
         eot = midi.EndOfTrackEvent(tick=get_max_tick(self.track) + 2 * self.pc.whole_note)
         self.track.append(eot)
         self.track = make_ticks_rel(self.track)
-        midi.write_midifile(filename, self.pattern)
+        self.track_filename = "example_outputs/" + filename + "_" + self.track_uuid + ".mid"
+        midi.write_midifile(self.track_filename, self.pattern)
 
     def write_melody_to_midi(self, melody, filename):
         self._initialize_or_reset_state()
@@ -517,4 +519,5 @@ class TrackBuilder:
         eot = midi.EndOfTrackEvent(tick=get_max_tick(self.track) + 2 * self.pc.whole_note)
         self.track.append(eot)
         self.track = make_ticks_rel(self.track)
-        midi.write_midifile(filename, self.pattern)
+        self.track_filename = "example_outputs/" + filename + "_" + self.track_uuid + ".mid"
+        midi.write_midifile(self.track_filename, self.pattern)

@@ -21,7 +21,15 @@ cd midi-skirt/
 pip install -r requirements.txt
 ```
 
+If you need a way to play midi files, one way is to drag and drop into GarageBand or Logic Pro, but there's also a helpful commandline tool for this, `timidity`:
+```
+brew install timidity
+```
+
+with the basic usage: `timidity --adjust-tempo=120 melody.mid`
+
 ### Run and tweak examples!
+You may want to add the `midi-skirt` directory to your `PYTHONPATH` with `export PYTHONPATH=$PYTHONPATH:<path-to-midi-skirt>`
 ```
 iPython -i midi_skirt_examples.py
 ```
