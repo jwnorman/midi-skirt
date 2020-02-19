@@ -15,7 +15,16 @@ from musical.theory import (
 
 
 class PatternConstants:
+    """A helper class to pre-compute all note durations given a time signature and a resolution."""
+
     def __init__(self, resolution=440, time_signature='4/4'):
+        """Pre-compute all note durations given resolution and time signature.
+        :param resolution: From the python-midi README: A tick represents the lowest level resolution of a MIDI track.
+            Tempo is always analogous with Beats per Minute (BPM) which is the same thing as Quarter notes per Minute
+            (QPM). resolution is also known as the Pulses per Quarter note (PPQ). It analogous to Ticks per Beat (TPM).
+        :param time_signature: the time signature (<beats per measure> / <value of a beat>) of the pattern
+        :return:
+        """
         self.beats_per_bar, _ = [int(i) for i in time_signature.split('/')]
         self.resolution = resolution
         self.beat = resolution
@@ -38,6 +47,7 @@ class PatternConstants:
          self.sixty_forth_ninth) = self.get_notes(9)
 
     def get_notes(self, divisions=3):
+        """Return notes based on desired number of divisions within a bar."""
         half = int(self.half_note / float(divisions))
         quarter = int(self.quarter_note / float(divisions))
         eighth = int(self.eighth_note / float(divisions))
@@ -45,14 +55,6 @@ class PatternConstants:
         thirty_second = int(self.thirty_second_note / float(divisions))
         sixty_forth = int(self.sixty_forth_note / float(divisions))
         return [half, quarter, eighth, sixteenth, thirty_second, sixty_forth]
-
-
-def get_max_tick(track):
-    return max([event.tick for event in track])
-
-
-def get_min_tick(track):
-    return min([event.tick for event in track])
 
 
 class MidiEventStager:
@@ -468,11 +470,11 @@ class TrackBuilder:
                 print(number_before_negative)
             running_tick += event.tick
 
-    def get_max_tick(track):
-        return max([event.tick for event in track])
+    def get_max_tick(self):
+        return max([event.tick for event in self.track])
 
-    def get_min_tick(track):
-        return min([event.tick for event in track])
+    def get_min_tick(self):
+        return min([event.tick for event in self.track])
 
     def write_chord_progression_to_midi(self, chord_progression_rhythm, filename):
         self._initialize_or_reset_state()
@@ -489,7 +491,7 @@ class TrackBuilder:
         self.track = add_tuples_to_track(self.track, staged_events_df)
 
         # Add the end of track event, append it to the track
-        eot = midi.EndOfTrackEvent(tick=get_max_tick(self.track) + 2 * self.pc.whole_note)
+        eot = midi.EndOfTrackEvent(tick=self.get_max_tick() + 2 * self.pc.whole_note)
         self.track.append(eot)
         self.make_ticks_rel()
         self.track_filename = "example_outputs/" + filename + "_" + self.track_uuid + ".mid"
@@ -502,7 +504,7 @@ class TrackBuilder:
         staged_events_df.sort_values(by=["tick", "duration"], inplace=True)
 
         self.track = add_tuples_to_track(self.track, staged_events_df)
-        eot = midi.EndOfTrackEvent(tick=get_max_tick(self.track) + 2 * self.pc.whole_note)
+        eot = midi.EndOfTrackEvent(tick=self.get_max_tick() + 2 * self.pc.whole_note)
         self.track.append(eot)
         self.make_ticks_rel()
         self.track_filename = "example_outputs/" + filename + "_" + self.track_uuid + ".mid"
