@@ -19,10 +19,12 @@ class PatternConstants:
 
     def __init__(self, resolution=440, time_signature='4/4'):
         """Pre-compute all note durations given resolution and time signature.
-        :param resolution: From the python-midi README: A tick represents the lowest level resolution of a MIDI track.
+
+        :param resolution: from the python-midi README: A tick represents the lowest level resolution of a MIDI track.
             Tempo is always analogous with Beats per Minute (BPM) which is the same thing as Quarter notes per Minute
             (QPM). resolution is also known as the Pulses per Quarter note (PPQ). It analogous to Ticks per Beat (TPM).
         :param time_signature: the time signature (<beats per measure> / <value of a beat>) of the pattern
+
         :return:
         """
         self.beats_per_bar, _ = [int(i) for i in time_signature.split('/')]
@@ -58,16 +60,13 @@ class PatternConstants:
 
 
 class MidiEventStager:
-    # class to store events nearly ready to be converted to events
+    """Class to store events nearly ready to be converted to events."""
     def __init__(self, midi_event_fun, start_tick, duration, pitch, velocity):
         self.midi_event_fun = midi_event_fun
         self.start_tick = start_tick
         self.duration = duration
         self.pitch = pitch
         self.velocity = velocity
-
-#     def apply_midi_event_fun():
-#         self.midi_event_fun(tick=self.start_tick, velocity=self.velocity, pitch=self.pitch)
 
     def __repr__(self):
         return "{} {}".format(self.pitch, self.midi_event_fun.name)
@@ -88,7 +87,7 @@ class MidiChord:
 
     def __init__(self, chord_notes=None):
         """
-        chord_notes: a list of strings that represent the notes and octaves of the chord.
+        chord_notes: a list of strings, each of which represent a note (a pitch and octave concatenated)
 
         usage:
             chord = MidiChord(['c1', 'e1', 'g1'])
@@ -105,10 +104,26 @@ class MidiChord:
             self.staged_events.extend(notes_created)
 
     def set_start_tick(self, start_tick):
+        """Set the start tick of the chord directly using `start_tick`.
+
+        :param start_tick: the value to add or subtract from the absolute tick position (which will be influenced by
+            the chord progression).
+        :return:
+        """
         for event in self.staged_events:
             event.start_tick += start_tick
 
     def set_start_tick_uniformly_noisily(self, start_tick, noise_range, direction=None):
+        """Set the start tick of the chord with some noise distributed to each note of the chord.
+
+        :param start_tick: the value to add or subtract from the absolute tick position (which will be influenced by
+            the chord progression).
+        :param noise_range: The range to be used when selecting note displacements at random.
+        :param direction: after note displacements have been computed, the order (if any) for the displacements to be
+            applied in relationship to the note pitch.
+
+        :return:
+        """
         noises = [random.randint(noise_range[0], noise_range[1]) for _ in range(len(self.staged_events))]
         if direction is None:
             for event, noise in zip(self.staged_events, noises):
@@ -124,26 +139,55 @@ class MidiChord:
         for event in self.staged_events:
             event.start_tick += start_tick + random.randint(noise_range[0], noise_range[1])
 
-    def set_start_tick_uniformly_noisily_ascending(self, start_tick, noise_range):
-        pass
-
     def set_start_tick_uniformly_noisily_once(self, start_tick, noise_range):
+        """Set the start tick of the chord randomly given a start_tick and a noise range.
+
+        This is similar to `set_start_tick_uniformly_noisily` but the displacement is applied to the entire chord
+        instead of individual notes.
+
+        :param start_tick: the value to add or subtract from the absolute tick position (which will be influenced by
+            the chord progression).
+        :param noise_range: the range to be used when selecting the chord displacement at random.
+
+        :return:
+        """
         noise = random.randint(noise_range[0], noise_range[1])
         for event in self.staged_events:
             event.start_tick += start_tick + noise
 
     def set_duration(self, duration):
+        """Set the duration of all the notes in the chord directly.
+
+        :param duration: the duration of each note
+
+        :return:
+        """
         for event in self.staged_events:
             if event.midi_event_fun.name == "Note Off":
                 event.start_tick += duration
             event.duration += duration
 
     def set_velocity(self, velocity):
+        """Set the velocity of the chord directly.
+
+        Each note within the chord will be played with the same velocity.
+
+        :param velocity: the velocity value (representing volume/loudness of the notes)
+
+        :return:
+        """
         for event in self.staged_events:
             if event.midi_event_fun.name == "Note On":
                 event.velocity = velocity
 
     def set_velocity_randomly_uniform(self, min_vel, max_vel):
+        """Set the velocity of the notes of the chord randomly given a velocity range.
+
+        :param min_vel: the minimum value of the range used to compute random velocities
+        :param max_vel: the maximum value of the range used to compute random velocities
+
+        :return:
+        """
         for event in self.staged_events:
             if event.midi_event_fun.name == "Note On":
                 event.velocity = random.randint(min_vel, max_vel)
@@ -174,11 +218,13 @@ class ChordBuilder:
         :param octave: an integer between 0 and 8 (or 9 or something)
         :param intervals: a list of note intervals relative to the root. Use 'b' for flat and '#' for sharp.
         :param scale_name: the scale from which to select notes
+
         :return: a Chord object
         """
         named_scale = scale.NAMED_SCALES[scale_name]
         my_scale = Scale(Note((root.upper(), octave)), named_scale)
         num_notes_in_scale = len(my_scale)
+        # TODO: is this the correct way to calculate the scale_start_num?
         scale_start_num = octave * num_notes_in_scale
         intervals = [self._deal_with_pitch_accidentals(interval) for interval in intervals]
         notes = [my_scale.get(scale_start_num + interval[0] - 1).transpose(interval[1]) for interval in intervals]
@@ -193,7 +239,19 @@ class ChordBuilder:
         return chord
 
     @staticmethod
-    def build_randomly_from_scale(root, octave, scale_name="major", num_note_choices=[3, 4, 5]):
+    def build_randomly_from_scale(root, octave, scale_name="major", num_note_choices=None):
+        """Create a MidiChord object based on a given scale.
+
+        :param root: the root note of the scale
+        :param octave: the octave to be used when creating the chord
+        :param scale_name: the scale name to be used
+        :param num_note_choices: a list of how integers representing the number of notes allowed to be chosen at random
+            when constructing the chord randomly. None will default to [3, 4, 5].
+
+        :return: a MidiChord
+        """
+        if num_note_choices is None:
+            num_note_choices = [3, 4, 5]
         named_scale = scale.NAMED_SCALES[scale_name]
         my_scale = Scale(Note((root.upper(), octave)), named_scale)
         num_notes_in_scale = len(my_scale)
@@ -207,14 +265,31 @@ class ChordBuilder:
         return chord
 
     @staticmethod
-    def get_list_of_chord_notes_from_chord(notes):
-        return [Note.index_from_string(chord_note.note + str(chord_note.octave)) for chord_note in notes]
+    def get_list_of_chord_notes_from_chord(chord_notes):
+        """Extract the string representations of a list of Note objects.
+
+        :param chord_notes: a list of Note objects
+
+        :return: a list of string representations of a list of Note objects.
+        """
+        return [Note.index_from_string(chord_note.note + str(chord_note.octave)) for chord_note in chord_notes]
 
     @staticmethod
     def _deal_with_pitch_accidentals(interval):
-        # input "b9" output (9, -1)
-        # input "#9" output (9, 1)
-        # input "9" output (9, 0)
+        """Return a tuple of the note and how much to transpose the note.
+
+        This is a helper function to convert interval strings (like "b13") and output the note itself with a second
+        integer that represents how much to transpose the note (-1 for "b", 1 for "#", and 0 for nothing).
+
+        Examples
+            "b9" -> (9, -1)
+            "#9" -> (9, 1)
+            "9" -> (9, 0)
+
+        :param interval: a string representing a musical interval, e.g. "b9", "#9", or "9"
+
+        :return: a tuple of the note and how much to transpose the note
+        """
         if "b" in interval:
             transposition = -1
         elif "#" in interval:
@@ -226,13 +301,18 @@ class ChordBuilder:
 
 
 class ChordProgression:
-    """A ChordProgression consists of chords and changes (start ticks).
+    """A ChordProgression consists of chords and changes (start ticks)."""
 
-    The changes are just the underlying chord progression. A rhythm is created separately and applied
-    later by using the chord progression object to know which chord to play.
-    """
+    def __init__(self, chords, changes):
+        """
+        :param chords: a list of MidiChord instances
+        :param changes: a list of start ticks which denote where the underlying chords change. Note that these changes
+            are merely the *underlying* chord progression and don't necessarily denote when a chord will be played:
+            that will be left to the a Rhythm instance, which is created separately and applied later by using the
+            ChordProgression object to know which chord to play.
 
-    def __init__(self, chords=[], changes=[]):
+        :return:
+        """
         self.chords = chords
         self.changes = changes
 
@@ -243,7 +323,7 @@ class ChordProgression:
     def build_changes_randomly(self, duration_choices):
         pass
 
-    def build_progression_from_major(self, root, octave, roman_numerals=["I", "IV", "V7", "I"]):
+    def build_progression_from_major(self, root, octave, roman_numerals):
         pass
 
     def repeat_progression(self, num_repeats):
@@ -262,6 +342,12 @@ class ChordProgression:
         return sum(self.changes)
 
     def get_chord_from_tick(self, tick):
+        """Return the chord of self.chords given a all chord start ticks and a target tick.
+
+        :param tick: the tick of interest, which corresponds to the desired chord
+
+        :return: a MidiChord
+        """
         pos = np.sum(np.cumsum(np.array(self.changes)) - self.changes[0] <= tick)
         return self.chords[pos - 1]
 
@@ -292,8 +378,8 @@ class Rhythm:
         num_emphasis_notes = random.choice(range(num_container_divisions))
         random_emphasis_combo = np.random.choice(range(num_container_divisions), num_emphasis_notes, replace=False)
         # print("Emphasis on: " + str(np.array(random_emphasis_combo) + 1))
-        epmhasis_ticks_temp = np.arange(0, container, emphasis_quantization).take(random_emphasis_combo)
-        for tick in epmhasis_ticks_temp:
+        emphasis_ticks_temp = np.arange(0, container, emphasis_quantization).take(random_emphasis_combo)
+        for tick in emphasis_ticks_temp:
             emphasis_ticks.extend(np.arange(tick, self.rhythm_len, container))
         emphases = []
         for st in self.start_ticks:
